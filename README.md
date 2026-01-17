@@ -28,6 +28,11 @@ pip install -r requirements-vllm.txt     # add vLLM support (optional)
   ```
 - `--subset-size` controls the sampled size for the custom/escape subsets (default 100).
 
+### DeepJSONEval
+- Download the DeepJSONEval benchmark JSONL (or JSON) file from the upstream project [`GTS-AI-Infra-Lab-SotaS/DeepJSONEval`](https://github.com/GTS-AI-Infra-Lab-SotaS/DeepJSONEval). Place it at `data/deepjsoneval/deepjsoneval.jsonl` (or point `--deepjson-path` to your copy).
+- Each record should include `schema`, `text`, `json` (ground truth), `category`, and `true_depth`.
+- Use `--sample` or `--limit` to reduce the evaluated subset if desired.
+
 ## Running evaluations
 
 ### LiteLLM (OpenAI-compatible endpoints)
@@ -53,11 +58,23 @@ python -m evalbench.evaluate \
   --output runs/schemabench_vllm.jsonl
 ```
 
+### DeepJSONEval example
+```bash
+python -m evalbench.evaluate \
+  --backend litellm \
+  --model gpt-4o-mini \
+  --dataset deepjsoneval \
+  --deepjson-path ./data/deepjsoneval/deepjsoneval.jsonl \
+  --limit 25 \
+  --output runs/deepjsoneval_gpt4o.jsonl
+```
+
 ### Common flags
-- `--dataset`: `jsonschemabench`, `schemabench-complex`, `schemabench-custom`, `schemabench-escape`, or `schemabench-all`.
+- `--dataset`: `jsonschemabench`, `deepjsoneval`, `schemabench-complex`, `schemabench-custom`, `schemabench-escape`, or `schemabench-all`.
 - `--limit`: cap number of evaluated items.
-- `--sample`: random sample for JSONSchemaBench HF data.
+- `--sample`: random sample for JSONSchemaBench HF data or DeepJSONEval.
 - `--subset-size`: sampling size for SchemaBench custom/escape tasks.
+- `--temperature`: sampling temperature passed through to LiteLLM or vLLM (default 0.0).
 - `--stop`: optional stop sequences (space-separated).
 - Results are written to `--output` (JSONL) plus a sibling `*.metrics.json` summary.
 

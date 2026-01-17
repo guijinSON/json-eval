@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import jsonschema
 from tqdm import tqdm
 
-from evalbench.datasets import load_jsonschemabench, load_schemabench
+from evalbench.datasets import load_deepjsoneval, load_jsonschemabench, load_schemabench
 from evalbench.models import LiteLLMRunner, VLLMRunner
 from evalbench.types import EvalItem
 
@@ -52,6 +52,15 @@ def _load_dataset(args: argparse.Namespace) -> List[EvalItem]:
             sample=args.sample,
             seed=args.seed,
         )
+    if args.dataset == "deepjsoneval":
+        if not args.deepjson_path:
+            raise ValueError("DeepJSONEval requires --deepjson-path to point to the dataset file.")
+        return load_deepjsoneval(
+            data_path=args.deepjson_path,
+            limit=args.limit,
+            sample=args.sample,
+            seed=args.seed,
+        )
     schemabench_split = args.dataset.replace("schemabench-", "")
     return load_schemabench(
         data_root=args.schemabench_root,
@@ -71,7 +80,12 @@ def _build_runner(args: argparse.Namespace):
             extra_kwargs={"temperature": args.temperature, "max_tokens": args.max_tokens},
         )
     if args.backend == "vllm":
-        return VLLMRunner(model=args.model, max_tokens=args.max_tokens, stop=args.stop)
+        return VLLMRunner(
+            model=args.model,
+            max_tokens=args.max_tokens,
+            stop=args.stop,
+            temperature=args.temperature,
+        )
     raise ValueError(f"Unknown backend {args.backend}")
 
 
@@ -131,6 +145,7 @@ def build_parser() -> argparse.ArgumentParser:
         default="jsonschemabench",
         choices=[
             "jsonschemabench",
+            "deepjsoneval",
             "schemabench-complex",
             "schemabench-custom",
             "schemabench-escape",
@@ -140,12 +155,22 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--model", required=True, help="Model name for vLLM or LiteLLM.")
     parser.add_argument("--backend", default="litellm", choices=["litellm", "vllm"])
     parser.add_argument("--limit", type=int, default=None, help="Max items to evaluate.")
-    parser.add_argument("--sample", type=int, default=None, help="Random sample size for JSONSchemaBench.")
+    parser.add_argument(
+        "--sample",
+        type=int,
+        default=None,
+        help="Random sample size for JSONSchemaBench or DeepJSONEval.",
+    )
     parser.add_argument("--subset-size", type=int, default=100, help="Subset size for SchemaBench custom/escape.")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--jsonschemabench-root", default=None, help="Local data root; if omitted use HF dataset.")
     parser.add_argument("--hf-split", default="train", help="HF split name for JSONSchemaBench.")
     parser.add_argument("--schemabench-root", default="./data/schemabench", help="Local SchemaBench data root.")
+    parser.add_argument(
+        "--deepjson-path",
+        default="./data/deepjsoneval/deepjsoneval.jsonl",
+        help="Local DeepJSONEval data file (.jsonl or .json).",
+    )
     parser.add_argument("--output", default=None, help="Path to write JSONL outputs.")
     parser.add_argument("--api-key", default=None, help="API key for LiteLLM-compatible endpoints.")
     parser.add_argument("--base-url", default=None, help="Base URL for LiteLLM-compatible endpoints.")

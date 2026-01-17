@@ -6,7 +6,14 @@ class VLLMRunner:
     Lightweight vLLM wrapper.
     """
 
-    def __init__(self, model: str, max_tokens: int = 512, stop: Optional[List[str]] = None, **kwargs: Dict[str, Any]):
+    def __init__(
+        self,
+        model: str,
+        max_tokens: int = 512,
+        stop: Optional[List[str]] = None,
+        temperature: float = 0.0,
+        **kwargs: Dict[str, Any],
+    ):
         try:
             from vllm import LLM, SamplingParams
         except ImportError as exc:
@@ -14,7 +21,7 @@ class VLLMRunner:
                 "vLLM is not installed. Install via `pip install -r requirements-vllm.txt`."
             ) from exc
 
-        self.sampling_params = SamplingParams(max_tokens=max_tokens, stop=stop)
+        self.sampling_params = SamplingParams(max_tokens=max_tokens, stop=stop, temperature=temperature)
         self.llm = LLM(model=model, **kwargs)
 
     def generate(self, prompt: str, stop: Optional[List[str]] = None) -> str:
